@@ -1,5 +1,5 @@
 import { Module, OnModuleInit } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RagModule } from './rag/rag.module';
 import { SupportModule } from './support/support.module';
 import configuration from './config/configuration';
@@ -15,16 +15,19 @@ import * as path from 'path';
       envFilePath: '.env',
       load: [configuration],
     }),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DATABASE_HOST || 'localhost',
-      port: +(process.env.DATABASE_PORT || '5432'),
-      username: process.env.DATABASE_USERNAME || 'myuser',
-      password: process.env.DATABASE_PASSWORD || 'ChangeMe',
-      database: process.env.DATABASE_NAME || 'api',
-      entities: [],
-      synchronize: false,
-      logging: true,
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.get('DATABASE_HOST', 'localhost'),
+        port: configService.get('DATABASE_PORT', 5432),
+        username: configService.get('DATABASE_USERNAME', 'myuser'),
+        password: configService.get('DATABASE_PASSWORD', 'ChangeMe'),
+        database: configService.get('DATABASE_NAME', 'api'),
+        entities: [],
+        synchronize: false,
+        logging: true,
+      }),
     }),
     RagModule,
     SupportModule,
