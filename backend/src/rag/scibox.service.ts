@@ -20,7 +20,6 @@ export class SciBoxService {
       temperature: 0.7,
       maxTokens: 1000,
     });
-    console.log('SciBox API Key configured:', sciboxConfig.apiKey);
 
     this.embeddingModel = new OpenAIEmbeddings({
       openAIApiKey: sciboxConfig.apiKey,

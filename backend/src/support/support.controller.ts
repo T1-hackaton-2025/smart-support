@@ -1,14 +1,18 @@
-import { Body, Controller, Logger, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Logger, Param, Post } from '@nestjs/common';
 import { SupportService } from './support.service';
 import { SubmitQuestionDto } from './dto/submit-question.dto';
 import { SubmitResponseDto } from './dto/submit-response.dto';
 import { QuestionResponseDto } from './dto/question-response.dto';
+import { RagService } from '../rag/rag.service';
 
 @Controller('support')
 export class SupportController {
   private readonly logger = new Logger(SupportController.name);
 
-  constructor(private readonly supportService: SupportService) {}
+  constructor(
+    private readonly supportService: SupportService,
+    private readonly ragService: RagService,
+  ) {}
 
   @Post('questions')
   async submitQuestion(
@@ -28,5 +32,11 @@ export class SupportController {
       questionId,
       submitResponseDto.response,
     );
+  }
+
+  @Get('test-scibox')
+  async testSciBox() {
+    this.logger.log('GET /support/test-scibox');
+    return this.ragService.makeChain();
   }
 }
