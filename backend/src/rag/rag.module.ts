@@ -4,5 +4,6 @@ import { SciBoxService } from './scibox.service';
 
 @Module({
   providers: [RagService, SciBoxService],
+  exports: [RagService],
 })
 export class RagModule {}
