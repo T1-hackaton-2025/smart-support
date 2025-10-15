@@ -5,7 +5,6 @@ import { DatabaseService } from 'src/database/database.service';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { SciBoxService } from 'src/ai/scibox.service';
 import { FaqEntry } from 'src/database/util/parseExcelFile';
-import { categoriesWithSubcategories } from './constants';
 
 @Injectable()
 export class RagService {
@@ -61,24 +60,10 @@ export class RagService {
         'Given a question, convert it to a standalone question.',
         'Treat uppercase and lowercase letters as equivalent.',
         'question: {question}',
+        'Treat uppercase and lowercase letters as equivalent.',
       ].join('\n'),
     );
     const toStandalone = standaloneQuestionPrompt
-      .pipe(chatModel)
-      .pipe(new StringOutputParser());
-
-    const classifyPrompt = ChatPromptTemplate.fromTemplate(
-      [
-        'Classify the standalone question into one of the categories and subcategories provided.',
-        'Return ONLY valid JSON object with exact keys and double quotes:',
-        '{{"mainCategory":"...","subCategory":"..."}}',
-        'If there is no suitable subcategory, set subCategory to an empty string.',
-        'Treat uppercase and lowercase letters as equivalent.',
-        'Standalone question: {standaloneQuestion}',
-        'Categories JSON list: {categories}',
-      ].join('\n'),
-    );
-    const classifyStep = classifyPrompt
       .pipe(chatModel)
       .pipe(new StringOutputParser());
 
@@ -101,63 +86,11 @@ export class RagService {
         this.logger.log(
           `timing toStandalone took time=${Date.now() - standaloneStartedAt}ms`,
         );
-        const categories = JSON.stringify(
-          categoriesWithSubcategories.map((c) => ({
-            category: c.category,
-            subcategories: c.subcategories,
-          })),
-        );
-        return { standaloneQuestion, categories } as {
-          standaloneQuestion: string;
-          categories: string;
-        };
+        return { standaloneQuestion } as { standaloneQuestion: string };
       },
-      async (prev: { standaloneQuestion: string; categories: string }) => {
-        const classifyStartedAt = Date.now();
-        const classification = await classifyStep.invoke({
-          standaloneQuestion: prev.standaloneQuestion,
-          categories: prev.categories,
-        });
-        this.logger.log(
-          `timing classify took time=${Date.now() - classifyStartedAt}ms`,
-        );
-        return {
-          standaloneQuestion: prev.standaloneQuestion,
-          classification,
-        } as { standaloneQuestion: string; classification: string };
-      },
-      async (prev: { standaloneQuestion: string; classification: string }) => {
-        let mainCategory = '';
-        let subCategory = '';
-        try {
-          const parsed = JSON.parse(prev.classification);
-          if (parsed && typeof parsed === 'object') {
-            mainCategory = parsed.mainCategory || '';
-            subCategory = parsed.subCategory || '';
-          }
-        } catch {}
-
-        const filter = mainCategory
-          ? subCategory
-            ? { metadata: { mainCategory, subCategory } }
-            : { metadata: { mainCategory } }
-          : undefined;
-
+      async (prev: { standaloneQuestion: string }) => {
         const vectorStore = this.dbService.getVectorStore();
         const retrieveStartedAt = Date.now();
-        if (filter) {
-          const results = await vectorStore.similaritySearchWithScore(
-            prev.standaloneQuestion,
-            5,
-            filter,
-          );
-          this.logger.log(
-            `timing similaritySearch (filtered) took time=${
-              Date.now() - retrieveStartedAt
-            }ms`,
-          );
-          return results;
-        }
         const results = await vectorStore.similaritySearchWithScore(
           prev.standaloneQuestion,
           5,
