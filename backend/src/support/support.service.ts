@@ -3,6 +3,7 @@ import {
   QuestionResponseDto,
   SuggestedResponseDto,
 } from './dto/question-response.dto';
+import { RagService } from 'src/rag/rag.service';
 
 @Injectable()
 export class SupportService {
@@ -28,22 +29,35 @@ export class SupportService {
     },
   ];
 
+  constructor(private readonly ragService: RagService) {}
+
   async submitQuestion(questionText: string): Promise<QuestionResponseDto> {
     this.logger.log(`Received question: ${questionText}`);
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    const questionId = this.generateId();
-    const category = 'General';
-    const subcategory = 'Something';
+    // const questionId = this.generateId();
+    // const category = 'General';
+    // const subcategory = 'Something';
 
-    this.logger.log(`Generated question ID: ${questionId}`);
+    // this.logger.log(`Generated question ID: ${questionId}`);
+
+    // return {
+    //   id: questionId,
+    //   question: questionText,
+    //   category,
+    //   subcategory,
+    //   suggestedResponses: this.mockResponses,
+    // };
+
+    const standalone =
+      await this.ragService.getStandaloneQuestion(questionText);
 
     return {
-      id: questionId,
-      question: questionText,
-      category,
-      subcategory,
+      id: '123',
+      question: standalone,
+      category: 'category',
+      subcategory: 'subcategory',
       suggestedResponses: this.mockResponses,
     };
   }

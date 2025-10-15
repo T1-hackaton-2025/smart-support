@@ -7,13 +7,18 @@ export async function saveFaqEntriesToDatabase(
   dataSource: DataSource,
   vectorStore: PGVectorStore,
   faqEntries: FaqEntry[],
+  test: (document: Document) => void,
 ): Promise<void> {
   try {
-    console.log(`Starting to save ${faqEntries.length} FAQ entries to database with embeddings...`);
+    console.log(
+      `Starting to save ${faqEntries.length} FAQ entries to database with embeddings...`,
+    );
 
-    const existingCount = await dataSource.query('SELECT COUNT(*) as count FROM documents');
+    const existingCount = await dataSource.query(
+      'SELECT COUNT(*) as count FROM documents',
+    );
     const count = parseInt(existingCount[0].count);
-    
+
     if (count > 0) {
       console.log(`Found ${count} existing documents. Clearing table...`);
       await dataSource.query('TRUNCATE TABLE documents RESTART IDENTITY');
@@ -31,10 +36,14 @@ export async function saveFaqEntriesToDatabase(
         },
       });
     });
-    
+
+    documents.forEach((d) => test(d));
+
     await vectorStore.addDocuments(documents);
 
-    console.log(`Successfully saved ${faqEntries.length} FAQ entries with embeddings to database`);
+    console.log(
+      `Successfully saved ${faqEntries.length} FAQ entries with embeddings to database`,
+    );
   } catch (error) {
     console.error('Failed to save FAQ entries to database:', error);
     throw error;

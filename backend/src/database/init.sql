@@ -11,7 +11,7 @@ create table if not exists documents (
 
 -- Create a function to search for documents
 create or replace function match_documents (
-  query_embedding vector(1024),
+  query_embedding vector(256),
   match_count int DEFAULT null,
   filter jsonb DEFAULT '{}'
 ) returns table (

@@ -37,6 +37,7 @@ export class SupportController {
   @Get('test-scibox')
   async testSciBox() {
     this.logger.log('GET /support/test-scibox');
-    return this.ragService.makeChain();
+    // await this.ragService.makeChain();
+    await this.ragService.testSciBoxService();
   }
 }

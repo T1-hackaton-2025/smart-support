@@ -1,9 +1,11 @@
-import { Module, OnModuleInit } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { RagService } from './rag.service';
-import { SciBoxService } from './scibox.service';
+import { DatabaseModule } from 'src/database/database.module';
+import { AIModule } from 'src/ai/ai.module';
 
 @Module({
-  providers: [RagService, SciBoxService],
-  exports: [RagService, SciBoxService],
+  imports: [DatabaseModule, AIModule],
+  providers: [RagService],
+  exports: [RagService],
 })
 export class RagModule {}
