@@ -28,19 +28,10 @@ export default function QuestionPage() {
     }
   };
 
-  const handleCloseResponse = () => {
-    setQuestionResponse(null);
-    setQuestionText("");
-  };
-
   return (
     <div className="flex h-screen w-full">
-      {/* Question Input */}
-      <div
-        className={`transition-all duration-300 ${
-          questionResponse ? "w-1/3" : "w-full"
-        }`}
-      >
+      {/* Left Panel – Question Input */}
+      <div className="w-1/3">
         <Card className="h-full flex flex-col rounded-none">
           <CardHeader>
             <CardTitle className="text-2xl">
@@ -85,15 +76,10 @@ export default function QuestionPage() {
         </Card>
       </div>
 
-      {/* Question Response Panel */}
-      {questionResponse && (
-        <div className="w-2/3 border-l">
-          <QuestionDetails
-            question={questionResponse}
-            onClose={handleCloseResponse}
-          />
-        </div>
-      )}
+      {/* Right Panel – Always visible */}
+      <div className="w-2/3 border-l">
+        <QuestionDetails question={questionResponse} loading={loading} />
+      </div>
     </div>
   );
 }
