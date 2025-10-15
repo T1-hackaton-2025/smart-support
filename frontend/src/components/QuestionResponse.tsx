@@ -157,14 +157,14 @@ export default function QuestionDetails({
                           <TableCell>
                             <span
                               className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                response.relevance >= 0.9
+                                response.relevance >= 80
                                   ? "bg-green-100 text-green-800"
-                                  : response.relevance >= 0.7
+                                  : response.relevance >= 70
                                   ? "bg-yellow-100 text-yellow-800"
                                   : "bg-red-100 text-red-800"
                               }`}
                             >
-                              {(response.relevance * 100).toFixed(0)}%
+                              {(response.relevance)}%
                             </span>
                           </TableCell>
                         </TableRow>

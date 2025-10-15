@@ -42,7 +42,8 @@ export class SupportService {
       suggestedResponses: templates.map((t, i) => ({
         id: i.toString(10),
         response: t.templateAnswer,
-        relevance: 1,
+        relevance:
+          typeof t.relevancePercent === 'number' ? t.relevancePercent : 1,
       })),
     };
   }
