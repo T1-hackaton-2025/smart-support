@@ -2,13 +2,12 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { PGVectorStore } from '@langchain/community/vectorstores/pgvector';
 import { VectorStoreRetriever } from '@langchain/core/vectorstores';
 import { ConfigService } from '@nestjs/config';
-import { saveFaqEntriesToDatabase } from './util/saveToDatabase';
 import { DataSource } from 'typeorm';
 import { SciBoxService } from '../ai/scibox.service';
 import * as path from 'path';
 import * as fs from 'fs';
-import { parseExcelFile } from './util/parseExcelFile';
-
+import { FaqEntry, parseExcelFile } from './util/parseExcelFile';
+import { Document } from '@langchain/core/documents';
 @Injectable()
 export class DatabaseService implements OnModuleInit {
   private readonly vectorStore: PGVectorStore;
@@ -58,12 +57,7 @@ export class DatabaseService implements OnModuleInit {
       const faqEntries = await parseExcelFile();
       console.log(`Parsed ${faqEntries.length} FAQ entries from Excel file`);
 
-      await saveFaqEntriesToDatabase(
-        this.dataSource,
-        this.vectorStore,
-        faqEntries,
-        (d) => console.log(d),
-      );
+      await this.saveFaqEntriesToDatabase(faqEntries);
     } catch (error) {
       console.error('Database initialization failed:', error);
       throw error;
@@ -76,5 +70,51 @@ export class DatabaseService implements OnModuleInit {
 
   getRetreiver(): VectorStoreRetriever<PGVectorStore> {
     return this.vectorStore.asRetriever();
+  }
+
+  private async saveFaqEntriesToDatabase(
+    faqEntries: FaqEntry[],
+  ): Promise<void> {
+    try {
+      console.log(
+        `Starting to save ${faqEntries.length} FAQ entries to database with embeddings...`,
+      );
+
+      const existingCount = await this.dataSource.query(
+        'SELECT COUNT(*) as count FROM documents',
+      );
+      const count = parseInt(existingCount[0].count);
+
+      if (count > 0) {
+        console.log(`Found ${count} existing documents. Clearing table...`);
+        await this.dataSource.query(
+          'TRUNCATE TABLE documents RESTART IDENTITY',
+        );
+      }
+
+      const documents: Document[] = faqEntries.map((entry, index) => {
+        return new Document({
+          pageContent: entry.question,
+          metadata: {
+            mainCategory: entry.mainCategory,
+            subCategory: entry.subCategory,
+            priority: entry.priority,
+            targetAudience: entry.targetAudience,
+            templateAnswer: entry.templateAnswer,
+          },
+        });
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+
+      await this.vectorStore.addDocuments(documents);
+
+      console.log(
+        `Successfully saved ${faqEntries.length} FAQ entries with embeddings to database`,
+      );
+    } catch (error) {
+      console.error('Failed to save FAQ entries to database:', error);
+      throw error;
+    }
   }
 }

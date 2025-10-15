@@ -27,6 +27,7 @@ export class SciBoxService {
         baseURL: sciboxConfig.baseUrl,
       },
       modelName: sciboxConfig.embeddingModel,
+      encodingFormat: 'float',
     });
   }
 

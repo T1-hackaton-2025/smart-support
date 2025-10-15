@@ -6,7 +6,7 @@ create table if not exists documents (
   id bigserial primary key,
   content text, -- corresponds to Document.pageContent
   metadata jsonb, -- corresponds to Document.metadata
-  embedding vector(256) -- 256 dimensions for bge-m3 model
+  embedding vector(1024) -- 256 dimensions for bge-m3 model
 );
 
 -- Create a function to search for documents
