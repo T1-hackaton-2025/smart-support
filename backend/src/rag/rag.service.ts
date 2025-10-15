@@ -4,6 +4,7 @@ import { Runnable } from '@langchain/core/runnables';
 import { DatabaseService } from 'src/database/database.service';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { SciBoxService } from 'src/ai/scibox.service';
+import { FaqEntry } from 'src/database/util/parseExcelFile';
 
 @Injectable()
 export class RagService {
@@ -18,16 +19,16 @@ export class RagService {
     this.chain = this.makeChain();
   }
 
-  public async getStandaloneQuestion(
+  public async getSuggestedTemplates(
     originalQuestion: string,
-  ): Promise<string> {
+  ): Promise<FaqEntry[]> {
     const response = await this.chain.invoke({
       question: originalQuestion,
     });
 
     console.log(response);
 
-    return '';
+    return response.map((d) => d.metadata);
   }
 
   private makeChain() {
@@ -41,11 +42,6 @@ export class RagService {
       .pipe(chatModel)
       .pipe(new StringOutputParser())
       .pipe(retreiver);
-    // const response = await chain.invoke({
-    //   question:
-    //     'How do I build a pc. Im a little confused about this, I want to know what parts to buy.',
-    // });
-    // console.log(response);
 
     return chain;
   }

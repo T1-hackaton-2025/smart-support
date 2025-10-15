@@ -34,31 +34,18 @@ export class SupportService {
   async submitQuestion(questionText: string): Promise<QuestionResponseDto> {
     this.logger.log(`Received question: ${questionText}`);
 
-    // await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    // const questionId = this.generateId();
-    // const category = 'General';
-    // const subcategory = 'Something';
-
-    // this.logger.log(`Generated question ID: ${questionId}`);
-
-    // return {
-    //   id: questionId,
-    //   question: questionText,
-    //   category,
-    //   subcategory,
-    //   suggestedResponses: this.mockResponses,
-    // };
-
-    const standalone =
-      await this.ragService.getStandaloneQuestion(questionText);
+    const templates = await this.ragService.getSuggestedTemplates(questionText);
 
     return {
       id: '123',
-      question: standalone,
+      question: questionText,
       category: 'category',
       subcategory: 'subcategory',
-      suggestedResponses: this.mockResponses,
+      suggestedResponses: templates.map((t, i) => ({
+        id: i.toString(10),
+        response: t.templateAnswer,
+        relevance: 1,
+      })),
     };
   }
 
