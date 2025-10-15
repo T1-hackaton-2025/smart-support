@@ -147,11 +147,11 @@ export default function QuestionDetails({
                         <TableRow>
                           <TableHead className="w-[50px]">Select</TableHead>
                           <TableHead className="w-[70%]">Response</TableHead>
-                          <TableHead className="w-[30%]">Relevance</TableHead>
+                          <TableHead className="w-[30%]"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {responses.map((response) => (
+                        {responses.map((response, i) => (
                           <TableRow key={response.id}>
                             <TableCell>
                               <input
@@ -165,7 +165,7 @@ export default function QuestionDetails({
                               {response.response}
                             </TableCell>
                             <TableCell>
-                              <span
+                              {/* <span
                                 className={`px-2 py-1 rounded-full text-xs font-medium ${
                                   response.relevance >= 80
                                     ? "bg-green-100 text-green-800"
@@ -175,7 +175,12 @@ export default function QuestionDetails({
                                 }`}
                               >
                                 {response.relevance.toFixed(0)}%
-                              </span>
+                              </span> */}
+                              {i == 0 && (
+                                <span className="ml-2 text-xs font-semibold text-blue-600">
+                                  ⭐
+                                </span>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))}
