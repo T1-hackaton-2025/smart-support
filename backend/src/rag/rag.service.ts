@@ -30,7 +30,11 @@ export class RagService {
       question: originalQuestion,
     });
     const invokeMs = Date.now() - invokeStartedAt;
-    const mapped = response.map((d) => d.metadata);
+    const mapped = response.map(([d, score]: any) => {
+      const similarity = 1 - score;
+      const relevancePercent = Math.round(similarity * 100);
+      return { ...d.metadata, relevancePercent };
+    });
     this.logger.log(
       `timing langchain chain took time=${invokeMs}ms,  finished at ${Date.now()}`,
     );
@@ -142,9 +146,9 @@ export class RagService {
         const vectorStore = this.dbService.getVectorStore();
         const retrieveStartedAt = Date.now();
         if (filter) {
-          const results = await vectorStore.similaritySearch(
+          const results = await vectorStore.similaritySearchWithScore(
             prev.standaloneQuestion,
-            1,
+            5,
             filter,
           );
           this.logger.log(
@@ -154,9 +158,9 @@ export class RagService {
           );
           return results;
         }
-        const results = await vectorStore.similaritySearch(
+        const results = await vectorStore.similaritySearchWithScore(
           prev.standaloneQuestion,
-          1,
+          5,
         );
         this.logger.log(
           `timing similaritySearch took time=${Date.now() - retrieveStartedAt}ms`,

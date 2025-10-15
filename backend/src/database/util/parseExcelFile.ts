@@ -9,6 +9,7 @@ export type FaqEntry = {
   priority: string;
   targetAudience: string;
   templateAnswer: string;
+  relevancePercent?: number;
 };
 
 export async function parseExcelFile(): Promise<FaqEntry[]> {
