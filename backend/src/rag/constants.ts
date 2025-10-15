@@ -1,62 +1,45 @@
-export const categoriesWithSubcategories = [
-  {
-    category: 'Новые клиенты',
-    subcategories: ['Регистрация и онбординг', 'Первые шаги'],
-  },
-  {
-    category: 'Продукты - Вклады',
-    subcategories: [
-      'Рублевые - Мои условия',
-      'Рублевые - Мои условия онлайн',
-      'Рублевые - Великий путь',
-      'Рублевые - СуперСемь',
-      'Рублевые - Подушка безопасности',
-      'Валютные - USD',
-      'Валютные - EUR',
-      'Валютные - RUB',
-      'Валютные - CNY',
-    ],
-  },
-  {
-    category: 'Продукты - Карты',
-    subcategories: [
-      'Дебетовые карты - MORE',
-      'Дебетовые карты - Форсаж',
-      'Дебетовые карты - Комплимент',
-      'Дебетовые карты - Signature',
-      'Дебетовые карты - Infinite',
-      'Кредитные карты - PLAT/ON',
-      'Кредитные карты - Портмоне 2.0',
-      'Кредитные карты - Отличник',
-      'Карты рассрочки - ЧЕРЕПАХА',
-      'Карты рассрочки - КСТАТИ',
-    ],
-  },
-  {
-    category: 'Продукты - Кредиты',
-    subcategories: [
-      'Потребительские - На всё про всё',
-      'Потребительские - Дальше - меньше',
-      'Потребительские - Легко платить',
-      'Потребительские - Всё только начинается',
-      'Потребительские - Старт',
-      'Онлайн кредиты - Проще в онлайн',
-      'Автокредиты - Автокредит без залога',
-      'Экспресс-кредиты - В магазинах-партнерах',
-      'Экспресс-кредиты - На роднае',
-    ],
-  },
-  {
-    category: 'Техническая поддержка',
-    subcategories: ['Проблемы и решения'],
-  },
-  {
-    category: 'Частные клиенты',
-    subcategories: [
-      'Кредиты',
-      'Банковские карточки',
-      'Вклады и депозиты',
-      'Онлайн-сервисы',
-    ],
-  },
+export const PRODUCT_NAMES = [
+  'MORE',
+  'Форсаж',
+  'Комплимент',
+  'Signature',
+  'PLAT/ON',
+  'Портмоне 2.0',
+  'Отличник',
+  'ЧЕРЕПАХА',
+  'КСТАТИ',
+  'На всё про всё',
+  'Дальше - меньше',
+  'Легко платить',
+  'Всё только начинается',
+  'Старт',
+  'Проще в онлайн',
+  'СуперСемь',
+  'Mir Pay',
 ];
+
+function createProductMapping(names: string[]) {
+  const mappings: Record<string, string> = {};
+  for (const name of names) {
+    mappings[name.toLowerCase()] = name;
+
+    if (/[A-Z]/.test(name)) {
+      const russianApprox = name
+        .replace(/MORE/i, 'МОРЕ')
+        .replace(/PLAT\/ON/i, 'ПЛАТ/ОН')
+        .replace(/MIR PAY/i, 'МИР ПЭЙ')
+        .replace(/\s/g, '');
+
+      if (russianApprox !== name) {
+        mappings[russianApprox.toLowerCase()] = name;
+      }
+    }
+  }
+  return mappings;
+}
+
+export const PRODUCT_MAP = createProductMapping(PRODUCT_NAMES);
+
+export const PRODUCT_MAPPING_STRING = Object.entries(PRODUCT_MAP)
+  .map(([key, value]) => `если найдено "${key}" -> заменить на "${value}"`)
+  .join('\n');

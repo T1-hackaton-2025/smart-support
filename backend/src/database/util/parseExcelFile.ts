@@ -12,6 +12,55 @@ export type FaqEntry = {
   relevancePercent?: number;
 };
 
+const currencyMap: Record<string, string> = {
+  'белорусский рубль': 'BYN',
+  'белорусских рублей': 'BYN',
+  'белорусских рублях': 'BYN',
+  'белорусские рубли': 'BYN',
+  BYN: 'BYN',
+  'базовых величин Республики Беларусь': 'BYN',
+  'российский рубль': 'RUB',
+  'российских рублях': 'RUB',
+  'российских рублей': 'RUB',
+  'российские рубли': 'RUB',
+  рублевый: 'RUB',
+  'руб.': 'RUB',
+  'российских руб.': 'RUB',
+  'доллар США': 'USD',
+  долларовый: 'USD',
+  'долларах США': 'USD',
+  'доллары США': 'USD',
+  'долларов США': 'USD',
+  доллара: 'USD',
+  'долл.': 'USD',
+  долларов: 'USD',
+  евро: 'EUR',
+  евровых: 'EUR',
+  'китайский юань': 'CNY',
+  'китайских юанях': 'CNY',
+  'китайских юаней': 'CNY',
+  'китайские юани': 'CNY',
+  юани: 'CNY',
+  'китайской валюте': 'CNY',
+};
+
+function replaceCurrencyMentions(text: string): string {
+  let result = text;
+
+  const sortedCurrencyEntries = Object.entries(currencyMap).sort(
+    ([keyA], [keyB]) => keyB.length - keyA.length,
+  );
+
+  for (const [key, value] of sortedCurrencyEntries) {
+    const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const regex = new RegExp(escapedKey, 'gi');
+
+    result = result.replace(regex, value);
+  }
+  return result;
+}
+
 export async function parseExcelFile(): Promise<FaqEntry[]> {
   try {
     const excelPath = path.join(
@@ -32,7 +81,6 @@ export async function parseExcelFile(): Promise<FaqEntry[]> {
       return [];
     }
 
-    //const headers = worksheet.data[0] as string[];
     const rows = worksheet.data.slice(1) as string[][];
 
     const faqEntries: FaqEntry[] = [];
@@ -44,7 +92,7 @@ export async function parseExcelFile(): Promise<FaqEntry[]> {
       const faqEntry = {
         mainCategory: row[0] || '',
         subCategory: row[1] || '',
-        question: row[2] || '',
+        question: replaceCurrencyMentions(row[2] || ''),
         priority: row[3] || '',
         targetAudience: row[4] || '',
         templateAnswer: row[5] || '',

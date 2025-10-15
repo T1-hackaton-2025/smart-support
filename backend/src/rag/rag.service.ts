@@ -5,6 +5,7 @@ import { DatabaseService } from 'src/database/database.service';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { SciBoxService } from 'src/ai/scibox.service';
 import { FaqEntry } from 'src/database/util/parseExcelFile';
+import { PRODUCT_MAPPING_STRING } from './constants';
 
 @Injectable()
 export class RagService {
@@ -45,10 +46,19 @@ export class RagService {
 
     const normalizationPrompt = ChatPromptTemplate.fromTemplate(
       [
-        'Given a user question, fix grammar and punctuation without changing the meaning.',
-        'Correct typos. Return ONLY the corrected question text without quotes or explanations.',
-        'Treat uppercase and lowercase letters as equivalent.',
-        'question: {question}',
+        'Вы — эксперт-корректор. Ваша задача — подготовить текст для точного векторного поиска.',
+        'Выполните следующие шаги строго по порядку:',
+        '1. Коррекция имен продуктов: Сначала просмотрите вопрос и найдите слова, которые могут быть названиями банковских продуктов.',
+        '   Если слово похоже на одно из названий в списке (фонетически, визуально, или является неправильным регистром/транслитерацией), замените его на точное, каноническое название из списка. Если из контекста видно, что слово не используется как термин, то игнорируй это правило',
+        '2. Коррекция валют: Найдите жаргонные выражения (например, "баксы", "евры"), или некорректные названия валют или их канонические названия ЗАМЕНИ ИХ НА аббревиатуры (USD, CNY, EUR, RUB и тд) .',
+        '2. Нормализация: Исправьте грамматику, пунктуацию, и опечатки в тексте после шага 1.',
+        '3. Расшифровка аббревиатур: Если в тексте остались аббревиатуры, не входящие в список продуктов (например, МСИ), расшифруйте их до полного значения.',
+        '---',
+        'Список продуктов для замены (ключ: найденный вариант, значение: канонический вариант):',
+        '{productMappings}',
+        '---',
+        'Возвращайте ТОЛЬКО финальный, скорректированный текст вопроса без объяснений и кавычек.',
+        'Вопрос: {question}',
       ].join('\n'),
     );
     const normalizeQuestion = normalizationPrompt
@@ -58,9 +68,7 @@ export class RagService {
     const standaloneQuestionPrompt = ChatPromptTemplate.fromTemplate(
       [
         'Given a question, convert it to a standalone question.',
-        'Treat uppercase and lowercase letters as equivalent.',
         'question: {question}',
-        'Treat uppercase and lowercase letters as equivalent.',
       ].join('\n'),
     );
     const toStandalone = standaloneQuestionPrompt
@@ -72,6 +80,7 @@ export class RagService {
         const startedAt = Date.now();
         const normalizedQuestion = await normalizeQuestion.invoke({
           question: input.question,
+          productMappings: PRODUCT_MAPPING_STRING,
         });
         this.logger.log(
           `timing normalizeQuestion took time=${Date.now() - startedAt}ms`,
