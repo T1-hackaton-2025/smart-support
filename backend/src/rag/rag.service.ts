@@ -1,10 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
-import { Runnable } from '@langchain/core/runnables';
+import { Runnable, RunnableSequence } from '@langchain/core/runnables';
 import { DatabaseService } from 'src/database/database.service';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { SciBoxService } from 'src/ai/scibox.service';
 import { FaqEntry } from 'src/database/util/parseExcelFile';
+import { categoriesWithSubcategories } from './constants';
 
 @Injectable()
 export class RagService {
@@ -38,15 +39,77 @@ export class RagService {
 
   private makeChain() {
     const chatModel = this.sciboxService.getChatModel();
-    const retreiver = this.dbService.getRetreiver();
 
     const standaloneQuestionPrompt = ChatPromptTemplate.fromTemplate(
       'Given a question, convert it to a standalone question. question: {question}',
     );
-    const chain = standaloneQuestionPrompt
+    const toStandalone = standaloneQuestionPrompt
       .pipe(chatModel)
-      .pipe(new StringOutputParser())
-      .pipe(retreiver);
+      .pipe(new StringOutputParser());
+
+    const classifyPrompt = ChatPromptTemplate.fromTemplate(
+      [
+        'Classify the standalone question into one of the categories and subcategories provided.',
+        'Return ONLY valid JSON object with exact keys and double quotes:',
+        '{{"mainCategory":"...","subCategory":"..."}}',
+        'If there is no suitable subcategory, set subCategory to an empty string.',
+        'Standalone question: {standaloneQuestion}',
+        'Categories JSON list: {categories}',
+      ].join('\n'),
+    );
+    const classifyStep = classifyPrompt
+      .pipe(chatModel)
+      .pipe(new StringOutputParser());
+
+    const chain = RunnableSequence.from([
+      {
+        standaloneQuestion: toStandalone,
+        categories: () =>
+          JSON.stringify(
+            categoriesWithSubcategories.map((c) => ({
+              category: c.category,
+              subcategories: c.subcategories,
+            })),
+          ),
+      },
+      async (prev: { standaloneQuestion: string; categories: string }) => {
+        const classification = await classifyStep.invoke({
+          standaloneQuestion: prev.standaloneQuestion,
+          categories: prev.categories,
+        });
+        return {
+          standaloneQuestion: prev.standaloneQuestion,
+          classification,
+        } as { standaloneQuestion: string; classification: string };
+      },
+      async (prev: { standaloneQuestion: string; classification: string }) => {
+        let mainCategory = '';
+        let subCategory = '';
+        try {
+          const parsed = JSON.parse(prev.classification);
+          if (parsed && typeof parsed === 'object') {
+            mainCategory = parsed.mainCategory || '';
+            subCategory = parsed.subCategory || '';
+          }
+        } catch {}
+
+        const filter = mainCategory
+          ? subCategory
+            ? { metadata: { mainCategory, subCategory } }
+            : { metadata: { mainCategory } }
+          : undefined;
+
+        const vectorStore = this.dbService.getVectorStore();
+        if (filter) {
+          return vectorStore.similaritySearch(
+            prev.standaloneQuestion,
+            1,
+            filter,
+          );
+        }
+        return vectorStore.similaritySearch(prev.standaloneQuestion, 1);
+      },
+    ]);
 
     return chain;
   }
