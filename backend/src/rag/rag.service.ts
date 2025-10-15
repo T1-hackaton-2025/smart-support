@@ -79,25 +79,44 @@ export class RagService {
       .pipe(new StringOutputParser());
 
     const chain = RunnableSequence.from([
-      {
-        normalizedQuestion: normalizeQuestion,
+      async (input: { question: string }) => {
+        const startedAt = Date.now();
+        const normalizedQuestion = await normalizeQuestion.invoke({
+          question: input.question,
+        });
+        this.logger.log(
+          `timing normalizeQuestion took time=${Date.now() - startedAt}ms`,
+        );
+        return { normalizedQuestion } as { normalizedQuestion: string };
       },
-      async (prev: { normalizedQuestion: string }) => ({
-        standaloneQuestion: await toStandalone.invoke({
+      async (prev: { normalizedQuestion: string }) => {
+        const standaloneStartedAt = Date.now();
+        const standaloneQuestion = await toStandalone.invoke({
           question: prev.normalizedQuestion,
-        }),
-        categories: JSON.stringify(
+        });
+        this.logger.log(
+          `timing toStandalone took time=${Date.now() - standaloneStartedAt}ms`,
+        );
+        const categories = JSON.stringify(
           categoriesWithSubcategories.map((c) => ({
             category: c.category,
             subcategories: c.subcategories,
           })),
-        ),
-      }),
+        );
+        return { standaloneQuestion, categories } as {
+          standaloneQuestion: string;
+          categories: string;
+        };
+      },
       async (prev: { standaloneQuestion: string; categories: string }) => {
+        const classifyStartedAt = Date.now();
         const classification = await classifyStep.invoke({
           standaloneQuestion: prev.standaloneQuestion,
           categories: prev.categories,
         });
+        this.logger.log(
+          `timing classify took time=${Date.now() - classifyStartedAt}ms`,
+        );
         return {
           standaloneQuestion: prev.standaloneQuestion,
           classification,
@@ -121,14 +140,28 @@ export class RagService {
           : undefined;
 
         const vectorStore = this.dbService.getVectorStore();
+        const retrieveStartedAt = Date.now();
         if (filter) {
-          return vectorStore.similaritySearch(
+          const results = await vectorStore.similaritySearch(
             prev.standaloneQuestion,
             1,
             filter,
           );
+          this.logger.log(
+            `timing similaritySearch (filtered) took time=${
+              Date.now() - retrieveStartedAt
+            }ms`,
+          );
+          return results;
         }
-        return vectorStore.similaritySearch(prev.standaloneQuestion, 1);
+        const results = await vectorStore.similaritySearch(
+          prev.standaloneQuestion,
+          1,
+        );
+        this.logger.log(
+          `timing similaritySearch took time=${Date.now() - retrieveStartedAt}ms`,
+        );
+        return results;
       },
     ]);
 
