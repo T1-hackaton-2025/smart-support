@@ -1,5 +1,5 @@
 import { Route, Routes } from "react-router-dom";
-import QuestionPage from "./pages/QuestionPage";
+import QuestionPage from "./pages/QuestionsPage";
 
 function App() {
   return (
