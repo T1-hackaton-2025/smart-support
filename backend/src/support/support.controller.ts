@@ -25,7 +25,9 @@ export class SupportController {
       submitQuestionDto.question,
     );
     const totalMs = Date.now() - startedAt;
-    this.logger.log(`Request processed in ${totalMs}ms, finished at ${Date.now()}`);
+    this.logger.log(
+      `Request processed in ${totalMs}ms, finished at ${Date.now()}`,
+    );
     return result;
   }
 

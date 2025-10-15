@@ -74,7 +74,6 @@ export class DatabaseService implements OnModuleInit {
     faqEntries: FaqEntry[],
   ): Promise<void> {
     try {
-
       const existingCount = await this.dataSource.query(
         'SELECT COUNT(*) as count FROM documents',
       );
@@ -102,7 +101,6 @@ export class DatabaseService implements OnModuleInit {
       await new Promise((resolve) => setTimeout(resolve, 3000));
 
       await this.vectorStore.addDocuments(documents);
-
     } catch (error) {
       console.error('Failed to save FAQ entries to database:', error);
       throw error;

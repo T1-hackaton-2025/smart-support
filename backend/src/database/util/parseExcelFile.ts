@@ -31,7 +31,7 @@ export async function parseExcelFile(): Promise<FaqEntry[]> {
       return [];
     }
 
-    const headers = worksheet.data[0] as string[];
+    //const headers = worksheet.data[0] as string[];
     const rows = worksheet.data.slice(1) as string[][];
 
     const faqEntries: FaqEntry[] = [];
