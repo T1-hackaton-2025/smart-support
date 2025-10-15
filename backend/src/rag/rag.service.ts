@@ -40,8 +40,24 @@ export class RagService {
   private makeChain() {
     const chatModel = this.sciboxService.getChatModel();
 
+    const normalizationPrompt = ChatPromptTemplate.fromTemplate(
+      [
+        'Given a user question, fix grammar and punctuation without changing the meaning.',
+        'Correct typos. Return ONLY the corrected question text without quotes or explanations.',
+        'Treat uppercase and lowercase letters as equivalent.',
+        'question: {question}',
+      ].join('\n'),
+    );
+    const normalizeQuestion = normalizationPrompt
+      .pipe(chatModel)
+      .pipe(new StringOutputParser());
+
     const standaloneQuestionPrompt = ChatPromptTemplate.fromTemplate(
-      'Given a question, convert it to a standalone question. question: {question}',
+      [
+        'Given a question, convert it to a standalone question.',
+        'Treat uppercase and lowercase letters as equivalent.',
+        'question: {question}',
+      ].join('\n'),
     );
     const toStandalone = standaloneQuestionPrompt
       .pipe(chatModel)
@@ -53,6 +69,7 @@ export class RagService {
         'Return ONLY valid JSON object with exact keys and double quotes:',
         '{{"mainCategory":"...","subCategory":"..."}}',
         'If there is no suitable subcategory, set subCategory to an empty string.',
+        'Treat uppercase and lowercase letters as equivalent.',
         'Standalone question: {standaloneQuestion}',
         'Categories JSON list: {categories}',
       ].join('\n'),
@@ -63,15 +80,19 @@ export class RagService {
 
     const chain = RunnableSequence.from([
       {
-        standaloneQuestion: toStandalone,
-        categories: () =>
-          JSON.stringify(
-            categoriesWithSubcategories.map((c) => ({
-              category: c.category,
-              subcategories: c.subcategories,
-            })),
-          ),
+        normalizedQuestion: normalizeQuestion,
       },
+      async (prev: { normalizedQuestion: string }) => ({
+        standaloneQuestion: await toStandalone.invoke({
+          question: prev.normalizedQuestion,
+        }),
+        categories: JSON.stringify(
+          categoriesWithSubcategories.map((c) => ({
+            category: c.category,
+            subcategories: c.subcategories,
+          })),
+        ),
+      }),
       async (prev: { standaloneQuestion: string; categories: string }) => {
         const classification = await classifyStep.invoke({
           standaloneQuestion: prev.standaloneQuestion,
