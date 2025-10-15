@@ -39,8 +39,8 @@ export class SupportService {
     return {
       id: '123',
       question: questionText,
-      category: 'category',
-      subcategory: 'subcategory',
+      category: templates[0].mainCategory || 'category',
+      subcategory: templates[0].subCategory || 'subcategory',
       suggestedResponses: templates.map((t, i) => ({
         id: i.toString(10),
         response: t.templateAnswer,
