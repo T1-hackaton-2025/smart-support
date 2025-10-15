@@ -174,7 +174,7 @@ export default function QuestionDetails({
                                     : "bg-red-100 text-red-800"
                                 }`}
                               >
-                                {(response.relevance * 100).toFixed(0)}%
+                                {response.relevance.toFixed(0)}%
                               </span>
                             </TableCell>
                           </TableRow>
