@@ -39,7 +39,6 @@ export class DatabaseService implements OnModuleInit {
           metadataColumnName: 'metadata',
         },
       });
-      console.log('PGVectorStore initialized successfully');
     } catch (error) {
       console.error('Failed to initialize PGVectorStore:', error);
       throw error;
@@ -55,7 +54,6 @@ export class DatabaseService implements OnModuleInit {
       console.log('Database initialization completed successfully');
 
       const faqEntries = await parseExcelFile();
-      console.log(`Parsed ${faqEntries.length} FAQ entries from Excel file`);
 
       await this.saveFaqEntriesToDatabase(faqEntries);
     } catch (error) {
@@ -76,9 +74,6 @@ export class DatabaseService implements OnModuleInit {
     faqEntries: FaqEntry[],
   ): Promise<void> {
     try {
-      console.log(
-        `Starting to save ${faqEntries.length} FAQ entries to database with embeddings...`,
-      );
 
       const existingCount = await this.dataSource.query(
         'SELECT COUNT(*) as count FROM documents',
@@ -86,7 +81,6 @@ export class DatabaseService implements OnModuleInit {
       const count = parseInt(existingCount[0].count);
 
       if (count > 0) {
-        console.log(`Found ${count} existing documents. Clearing table...`);
         await this.dataSource.query(
           'TRUNCATE TABLE documents RESTART IDENTITY',
         );
@@ -109,9 +103,6 @@ export class DatabaseService implements OnModuleInit {
 
       await this.vectorStore.addDocuments(documents);
 
-      console.log(
-        `Successfully saved ${faqEntries.length} FAQ entries with embeddings to database`,
-      );
     } catch (error) {
       console.error('Failed to save FAQ entries to database:', error);
       throw error;
