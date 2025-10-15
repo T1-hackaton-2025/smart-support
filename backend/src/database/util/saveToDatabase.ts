@@ -10,17 +10,12 @@ export async function saveFaqEntriesToDatabase(
   test: (document: Document) => void,
 ): Promise<void> {
   try {
-    console.log(
-      `Starting to save ${faqEntries.length} FAQ entries to database with embeddings...`,
-    );
-
     const existingCount = await dataSource.query(
       'SELECT COUNT(*) as count FROM documents',
     );
     const count = parseInt(existingCount[0].count);
 
     if (count > 0) {
-      console.log(`Found ${count} existing documents. Clearing table...`);
       await dataSource.query('TRUNCATE TABLE documents RESTART IDENTITY');
     }
 

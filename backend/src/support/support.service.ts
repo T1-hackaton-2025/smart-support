@@ -32,8 +32,6 @@ export class SupportService {
   constructor(private readonly ragService: RagService) {}
 
   async submitQuestion(questionText: string): Promise<QuestionResponseDto> {
-    this.logger.log(`Received question: ${questionText}`);
-
     const templates = await this.ragService.getSuggestedTemplates(questionText);
 
     return {

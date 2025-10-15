@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { Runnable } from '@langchain/core/runnables';
 import { DatabaseService } from 'src/database/database.service';
@@ -9,6 +9,7 @@ import { FaqEntry } from 'src/database/util/parseExcelFile';
 @Injectable()
 export class RagService {
   private readonly chain: Runnable;
+  private readonly logger = new Logger(RagService.name);
 
   constructor(
     private readonly sciboxService: SciBoxService,
@@ -22,13 +23,17 @@ export class RagService {
   public async getSuggestedTemplates(
     originalQuestion: string,
   ): Promise<FaqEntry[]> {
+    const invokeStartedAt = Date.now();
+    this.logger.log(`langchain chain started at  ${invokeStartedAt}`);
     const response = await this.chain.invoke({
       question: originalQuestion,
     });
-
-    console.log(response);
-
-    return response.map((d) => d.metadata);
+    const invokeMs = Date.now() - invokeStartedAt;
+    const mapped = response.map((d) => d.metadata);
+    this.logger.log(
+      `timing langchain chain took time=${invokeMs}ms,  finished at ${Date.now()}`,
+    );
+    return mapped;
   }
 
   private makeChain() {

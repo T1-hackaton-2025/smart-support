@@ -19,7 +19,14 @@ export class SupportController {
     @Body() submitQuestionDto: SubmitQuestionDto,
   ): Promise<QuestionResponseDto> {
     this.logger.log('POST /support/questions');
-    return this.supportService.submitQuestion(submitQuestionDto.question);
+    const startedAt = Date.now();
+    this.logger.log(`Request received at ${startedAt}`);
+    const result = await this.supportService.submitQuestion(
+      submitQuestionDto.question,
+    );
+    const totalMs = Date.now() - startedAt;
+    this.logger.log(`Request processed in ${totalMs}ms, finished at ${Date.now()}`);
+    return result;
   }
 
   @Post('questions/:id/response')

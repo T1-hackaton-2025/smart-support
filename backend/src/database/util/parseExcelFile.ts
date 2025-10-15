@@ -34,9 +34,6 @@ export async function parseExcelFile(): Promise<FaqEntry[]> {
     const headers = worksheet.data[0] as string[];
     const rows = worksheet.data.slice(1) as string[][];
 
-    console.log('Excel headers:', headers);
-    console.log(`Found ${rows.length} FAQ entries`);
-
     const faqEntries: FaqEntry[] = [];
 
     for (let i = 0; i < rows.length; i++) {
@@ -54,8 +51,6 @@ export async function parseExcelFile(): Promise<FaqEntry[]> {
 
       faqEntries.push(faqEntry);
     }
-
-    console.log('FAQ Entries:', faqEntries);
 
     return faqEntries;
   } catch (error) {
