@@ -69,7 +69,7 @@ export class DatabaseService implements OnModuleInit {
   }
 
   getRetreiver(): VectorStoreRetriever<PGVectorStore> {
-    return this.vectorStore.asRetriever();
+    return this.vectorStore.asRetriever({ k: 1 });
   }
 
   private async saveFaqEntriesToDatabase(
@@ -92,7 +92,7 @@ export class DatabaseService implements OnModuleInit {
         );
       }
 
-      const documents: Document[] = faqEntries.map((entry, index) => {
+      const documents: Document[] = faqEntries.map((entry) => {
         return new Document({
           pageContent: entry.question,
           metadata: {
