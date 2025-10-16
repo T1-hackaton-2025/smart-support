@@ -6,7 +6,7 @@
 
 Создайте файл backend/.env:
 
-
+```env
 # SciBox API Configuration
 SCIBOX_API_KEY=your-scibox-api-key-here
 OPENAI_API_KEY=your-scibox-api-key-here
@@ -24,6 +24,7 @@ DATABASE_NAME=api
 # Application Configuration
 PORT=3000
 NODE_ENV=production
+```
 
 
 > Важно: OPENAI_API_KEY должен быть таким же как SCIBOX_API_KEY, так как используется OpenAI-совместимый API от SciBox.
@@ -32,8 +33,9 @@ NODE_ENV=production
 
 Создайте файл frontend/.env:
 
-
+```env
 VITE_BACKEND_URL=http://localhost:3000
+```
 
 
 ### 2. Запуск с Docker
