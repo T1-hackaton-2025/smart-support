@@ -1,3 +1,5 @@
 export class SubmitResponseDto {
-  response: string;
+  finalResponse: string;
+  selectedResponses: string[];
+  standaloneQuestion: string;
 }

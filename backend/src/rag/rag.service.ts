@@ -6,6 +6,7 @@ import { StringOutputParser } from '@langchain/core/output_parsers';
 import { SciBoxService } from 'src/ai/scibox.service';
 import { FaqEntry } from 'src/database/util/parseExcelFile';
 import { PRODUCT_MAPPING_STRING } from './constants';
+import { Document } from '@langchain/core/documents';
 
 @Injectable()
 export class RagService {
@@ -23,22 +24,51 @@ export class RagService {
 
   public async getSuggestedTemplates(
     originalQuestion: string,
-  ): Promise<FaqEntry[]> {
+  ): Promise<{ entries: FaqEntry[]; standaloneQuestion: string }> {
     const invokeStartedAt = Date.now();
     this.logger.log(`langchain chain started at  ${invokeStartedAt}`);
-    const response = await this.chain.invoke({
+    const { results, standaloneQuestion } = await this.chain.invoke({
       question: originalQuestion,
     });
+
     const invokeMs = Date.now() - invokeStartedAt;
-    const mapped = response.map(([d, score]: any) => {
+    const mapped = results.map(([d, score]: any) => {
       const similarity = 1 - score;
       const relevancePercent = Math.round(similarity * 100);
-      return { ...d.metadata, relevancePercent };
+      return { ...d.metadata, relevancePercent, id: d.id };
     });
     this.logger.log(
       `timing langchain chain took time=${invokeMs}ms,  finished at ${Date.now()}`,
     );
-    return mapped;
+    return { entries: mapped, standaloneQuestion };
+  }
+
+  public async addNewTemplates(
+    newStandaloneQuestion: string,
+    selectedResponsesIds: string[],
+  ) {
+    if (!selectedResponsesIds || selectedResponsesIds.length === 0) return;
+
+    const rows = await this.dbService.findByIds(selectedResponsesIds);
+
+    if (!rows || rows.length === 0) {
+      throw new Error('No matching templates found for provided IDs.');
+    }
+
+    console.log(rows);
+
+    const newDocs = rows.map((row: any) => {
+      return new Document({
+        pageContent: newStandaloneQuestion,
+        metadata: {
+          ...row.metadata,
+        },
+      });
+    });
+
+    if (newDocs.length > 0) {
+      await this.dbService.saveNewDocuments(newDocs);
+    }
   }
 
   private makeChain() {
@@ -107,7 +137,10 @@ export class RagService {
         this.logger.log(
           `timing similaritySearch took time=${Date.now() - retrieveStartedAt}ms`,
         );
-        return results;
+        return {
+          results,
+          standaloneQuestion: prev.standaloneQuestion,
+        };
       },
     ]);
 
