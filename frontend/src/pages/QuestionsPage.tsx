@@ -1,11 +1,15 @@
-import { SuggestedResponseCard } from "@/components/TemplateResponseCard";
+import { SuggestedResponseCard } from "@/components/SuggestedResponseCard";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Search, Send } from "lucide-react";
 import { useEffect, useState } from "react";
-import { submitQuestion } from "@/api/api";
-import type { QuestionResponse, SuggestedResponse } from "@/types/types";
+import { submitQuestion, submitResponse } from "@/api/api";
+import type {
+  FinalResponsePayload,
+  QuestionResponse,
+  SuggestedResponse,
+} from "@/types/types";
 import Skeletons from "@/components/Skeletons";
 
 export default function QuestionsPage() {
@@ -13,6 +17,9 @@ export default function QuestionsPage() {
     new Set()
   );
   const [responses, setResponses] = useState<SuggestedResponse[]>([]);
+  const [modifiedResponses, setModifiedResponses] = useState<
+    Record<string, string>
+  >({});
   const [responseText, setResponseText] = useState("");
   const [showResults, setShowResults] = useState(false);
   const [questionText, setQuestionText] = useState("");
@@ -36,6 +43,9 @@ export default function QuestionsPage() {
       const questionResponse = await submitQuestion(questionText);
       setQuestionResponse(questionResponse);
       setShowResults(true);
+      setModifiedResponses({});
+      setSelectedResponses(new Set());
+      setResponseText("");
     } catch (error) {
       console.error("Failed to submit question:", error);
       alert("Failed to submit question. Please try again.");
@@ -63,16 +73,47 @@ export default function QuestionsPage() {
 
       const selectedTexts = responses
         .filter((r) => newSet.has(r.id))
-        .map((r) => r.response)
+        .map((r) => modifiedResponses[r.id]?.trim() || r.response)
         .join("\n\n");
 
       setResponseText(selectedTexts);
-
       return newSet;
     });
   };
 
-  const handleSubmit = async () => {};
+  const handleResponseModified = (
+    response: SuggestedResponse,
+    newText: string
+  ) => {
+    setModifiedResponses((prev) => {
+      const updated = { ...prev, [response.id]: newText };
+      if (selectedResponses.has(response.id)) {
+        const updatedText = responses
+          .filter((r) => selectedResponses.has(r.id))
+          .map((r) => updated[r.id]?.trim() || r.response)
+          .join("\n\n");
+        setResponseText(updatedText);
+      }
+      return updated;
+    });
+  };
+
+  const handleSubmit = async () => {
+    const payload: FinalResponsePayload = {
+      finalResponse: responseText.trim(),
+      modifiedResponses: Object.entries(modifiedResponses).map(
+        ([id, modifiedResponse]) => ({
+          id,
+          modifiedResponse,
+        })
+      ),
+      selectedResponses: Array.from(selectedResponses),
+      standaloneQuestion: questionResponse?.standaloneQuestion!,
+    };
+
+    console.log("Submitting:", payload);
+    await submitResponse(payload);
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 p-8">
@@ -123,18 +164,18 @@ export default function QuestionsPage() {
               </div>
 
               {/* Template Cards */}
-              <div>
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-                  {responses.map((response, i) => (
-                    <SuggestedResponseCard
-                      key={response.id}
-                      response={response}
-                      isSelected={selectedResponses.has(response.id)}
-                      isMostRelevant={i === 0}
-                      onToggle={() => handleTemplateToggle(response)}
-                    />
-                  ))}
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+                {responses.map((response, i) => (
+                  <SuggestedResponseCard
+                    key={response.id}
+                    response={response}
+                    isSelected={selectedResponses.has(response.id)}
+                    isMostRelevant={i === 0}
+                    onToggle={() => handleTemplateToggle(response)}
+                    onModified={handleResponseModified}
+                    modifiedText={modifiedResponses[response.id]}
+                  />
+                ))}
               </div>
 
               {/* Combined Response Textarea */}
@@ -156,7 +197,6 @@ export default function QuestionsPage() {
                     className="h-[calc(100vh-550px)] max-h-[200px] overflow-y-auto resize-none leading-tight bg-white dark:bg-slate-950 pr-20"
                   />
 
-                  {/* ✅ Position the Send button absolutely */}
                   <Button
                     onClick={handleSubmit}
                     disabled={!responseText.trim()}

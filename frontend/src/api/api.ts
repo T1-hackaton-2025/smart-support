@@ -1,4 +1,4 @@
-import type { QuestionResponse } from "@/types/types";
+import type { FinalResponsePayload, QuestionResponse } from "@/types/types";
 import $api from "./axios";
 
 export const submitQuestion = async (
@@ -7,14 +7,12 @@ export const submitQuestion = async (
   const response = await $api.post<QuestionResponse>("/support/questions", {
     question: questionText,
   });
+  console.log(response.data);
   return response.data;
 };
 
 export const submitResponse = async (
-  questionId: string,
-  responseText: string
+  finalResponse: FinalResponsePayload
 ): Promise<void> => {
-  await $api.post(`/support/questions/${questionId}/response`, {
-    response: responseText,
-  });
+  await $api.post(`/support/responses`, finalResponse);
 };
