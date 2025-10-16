@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as xlsx from 'node-xlsx';
 
 export type FaqEntry = {
+  id?: string;
   mainCategory: string;
   subCategory: string;
   question: string;

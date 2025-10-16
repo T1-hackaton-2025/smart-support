@@ -31,16 +31,12 @@ export class SupportController {
     return result;
   }
 
-  @Post('questions/:id/response')
+  @Post('responses')
   async submitResponse(
-    @Param('id') questionId: string,
     @Body() submitResponseDto: SubmitResponseDto,
   ): Promise<void> {
-    this.logger.log(`POST /support/questions/${questionId}/response`);
-    return this.supportService.submitResponse(
-      questionId,
-      submitResponseDto.response,
-    );
+    this.logger.log(`POST /support/responses`);
+    return await this.supportService.submitResponse(submitResponseDto);
   }
 
   @Get('test-scibox')

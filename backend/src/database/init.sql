@@ -35,3 +35,37 @@ order by documents.embedding <=> query_embedding
 limit match_count;
 end;
 $$;
+
+drop table if exists documents_extra;
+create table documents_extra (
+  id bigserial primary key,
+  content text,
+  -- corresponds to Document.pageContent
+  metadata jsonb,
+  -- corresponds to Document.metadata
+  embedding vector(1024) -- 1024 dimensions for the embedding model
+);
+
+create or replace function match_documents_extra (
+    query_embedding vector(1024),
+    match_count int DEFAULT null,
+    filter jsonb DEFAULT '{}'
+  ) returns table (
+    id bigint,
+    content text,
+    metadata jsonb,
+    embedding jsonb,
+    similarity float
+  ) language plpgsql as $$ #variable_conflict use_column
+  begin return query
+select id,
+  content,
+  metadata,
+  (embedding::text)::jsonb as embedding,
+  1 - (documents_extra.embedding <=> query_embedding) as similarity
+from documents_extra
+where metadata @> filter
+order by documents_extra.embedding <=> query_embedding
+limit match_count;
+end;
+$$;

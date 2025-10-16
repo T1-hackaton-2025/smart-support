@@ -8,9 +8,11 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { FaqEntry, parseExcelFile } from './util/parseExcelFile';
 import { Document } from '@langchain/core/documents';
+
 @Injectable()
 export class DatabaseService implements OnModuleInit {
   private readonly vectorStore: PGVectorStore;
+  private readonly vectorStoreExtra: PGVectorStore;
 
   constructor(
     private readonly configService: ConfigService,
@@ -28,16 +30,25 @@ export class DatabaseService implements OnModuleInit {
 
       const embeddingModel = this.sciBoxService.getEmbeddingModel();
 
-      this.vectorStore = new PGVectorStore(embeddingModel, {
+      const vectorStoreConfig = {
         postgresConnectionOptions: {
           connectionString,
         },
-        tableName: 'documents',
         columns: {
           vectorColumnName: 'embedding',
           contentColumnName: 'content',
           metadataColumnName: 'metadata',
         },
+      };
+
+      this.vectorStore = new PGVectorStore(embeddingModel, {
+        ...vectorStoreConfig,
+        tableName: 'documents',
+      });
+
+      this.vectorStoreExtra = new PGVectorStore(embeddingModel, {
+        ...vectorStoreConfig,
+        tableName: 'documents_extra',
       });
     } catch (error) {
       console.error('Failed to initialize PGVectorStore:', error);
@@ -70,6 +81,60 @@ export class DatabaseService implements OnModuleInit {
     return this.vectorStore.asRetriever({ k: 1 });
   }
 
+  getVectorStoreExtra(): PGVectorStore {
+    return this.vectorStore;
+  }
+
+  getRetreiverExtra(): VectorStoreRetriever<PGVectorStore> {
+    return this.vectorStore.asRetriever({ k: 1 });
+  }
+
+  async findByIds(ids: string[]) {
+    const {
+      pool,
+      tableName,
+      idColumnName,
+      contentColumnName,
+      metadataColumnName,
+    } = this.vectorStore;
+
+    if (!ids || ids.length === 0) {
+      return [];
+    }
+
+    const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ');
+
+    const query = `
+    SELECT ${idColumnName} AS id,
+           ${contentColumnName} AS content,
+           ${metadataColumnName} AS metadata
+    FROM ${tableName}
+    WHERE ${idColumnName} IN (${placeholders})
+  `;
+
+    console.log(tableName);
+
+    const res = await pool.query(
+      query,
+      ids.map((i) => parseInt(i)),
+    );
+
+    console.log(ids);
+    console.log(res);
+    console.log(res.rows);
+
+    return res.rows;
+  }
+
+  async saveNewDocuments(documents: Document[]) {
+    try {
+      await this.vectorStoreExtra.addDocuments(documents);
+    } catch (error) {
+      console.log('Failed to save FAQ entries to database:', error);
+      throw error;
+    }
+  }
+
   private async saveFaqEntriesToDatabase(
     faqEntries: FaqEntry[],
   ): Promise<void> {
@@ -85,20 +150,7 @@ export class DatabaseService implements OnModuleInit {
         );
       }
 
-      const documents: Document[] = faqEntries.map((entry) => {
-        return new Document({
-          pageContent: entry.question,
-          metadata: {
-            mainCategory: entry.mainCategory,
-            subCategory: entry.subCategory,
-            priority: entry.priority,
-            targetAudience: entry.targetAudience,
-            templateAnswer: entry.templateAnswer,
-          },
-        });
-      });
-
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      const documents: Document[] = faqEntries.map(entryToDocumentMapper);
 
       await this.vectorStore.addDocuments(documents);
     } catch (error) {
@@ -107,3 +159,15 @@ export class DatabaseService implements OnModuleInit {
     }
   }
 }
+
+const entryToDocumentMapper = (entry: FaqEntry) =>
+  new Document({
+    pageContent: entry.question,
+    metadata: {
+      mainCategory: entry.mainCategory,
+      subCategory: entry.subCategory,
+      priority: entry.priority,
+      targetAudience: entry.targetAudience,
+      templateAnswer: entry.templateAnswer,
+    },
+  });

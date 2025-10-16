@@ -1,46 +1,25 @@
 import { Injectable, Logger } from '@nestjs/common';
-import {
-  QuestionResponseDto,
-  SuggestedResponseDto,
-} from './dto/question-response.dto';
+import { QuestionResponseDto } from './dto/question-response.dto';
 import { RagService } from 'src/rag/rag.service';
+import { SubmitResponseDto } from './dto/submit-response.dto';
 
 @Injectable()
 export class SupportService {
   private readonly logger = new Logger(SupportService.name);
-  private mockResponses: SuggestedResponseDto[] = [
-    {
-      id: 'r1-1',
-      response:
-        "To reset your password, go to the login page and click 'Forgot Password'. Enter your email address and follow the instructions sent to your inbox.",
-      relevance: 0.95,
-    },
-    {
-      id: 'r1-2',
-      response:
-        "You can reset your password by visiting the account settings page and selecting 'Change Password' option.",
-      relevance: 0.87,
-    },
-    {
-      id: 'r1-3',
-      response:
-        'For password reset, contact our support team who can assist you with account recovery.',
-      relevance: 0.72,
-    },
-  ];
 
   constructor(private readonly ragService: RagService) {}
 
   async submitQuestion(questionText: string): Promise<QuestionResponseDto> {
-    const templates = await this.ragService.getSuggestedTemplates(questionText);
+    const { entries: templates, standaloneQuestion } =
+      await this.ragService.getSuggestedTemplates(questionText);
 
     return {
-      id: '123',
       question: questionText,
+      standaloneQuestion,
       category: templates[0].mainCategory || 'category',
       subcategory: templates[0].subCategory || 'subcategory',
-      suggestedResponses: templates.map((t, i) => ({
-        id: i.toString(10),
+      suggestedResponses: templates.map((t) => ({
+        id: t.id,
         response: t.templateAnswer,
         relevance:
           typeof t.relevancePercent === 'number' ? t.relevancePercent : 1,
@@ -48,19 +27,17 @@ export class SupportService {
     };
   }
 
-  async submitResponse(
-    questionId: string,
-    responseText: string,
-  ): Promise<void> {
-    this.logger.log(
-      `Submitting response for question ${questionId}: ${responseText}`,
-    );
+  async submitResponse(dto: SubmitResponseDto): Promise<void> {
+    if (dto.modifiedResponses.length === 0) return;
 
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    const newTemplates = dto.modifiedResponses.map((mr) => ({
+      modifiedTemplateId: mr.id,
+      modifiedTemplateAnswer: mr.modifiedResponse,
+    }));
 
-    this.logger.log(
-      `Response submitted successfully for question ${questionId}`,
-    );
+    await this.ragService.addNewTemplates(dto.standaloneQuestion, newTemplates);
+
+    console.log('submitted new template successfully');
   }
 
   private generateId(): string {

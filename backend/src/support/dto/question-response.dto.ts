@@ -5,8 +5,8 @@ export class SuggestedResponseDto {
 }
 
 export class QuestionResponseDto {
-  id: string;
   question: string;
+  standaloneQuestion: string;
   category: string;
   subcategory: string;
   suggestedResponses: SuggestedResponseDto[];

@@ -1,3 +1,6 @@
 export class SubmitResponseDto {
-  response: string;
+  finalResponse: string;
+  modifiedResponses: { id: string; modifiedResponse: string }[];
+  selectedResponses: string[];
+  standaloneQuestion: string;
 }
