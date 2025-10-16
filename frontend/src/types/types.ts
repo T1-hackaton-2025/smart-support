@@ -15,7 +15,6 @@ export interface SuggestedResponse {
 
 export interface FinalResponsePayload {
   finalResponse: string;
-  modifiedResponses: { id: string; modifiedResponse: string }[];
   selectedResponses: string[];
   standaloneQuestion: string;
 }

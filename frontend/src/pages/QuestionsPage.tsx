@@ -17,15 +17,13 @@ export default function QuestionsPage() {
     new Set()
   );
   const [responses, setResponses] = useState<SuggestedResponse[]>([]);
-  const [modifiedResponses, setModifiedResponses] = useState<
-    Record<string, string>
-  >({});
   const [responseText, setResponseText] = useState("");
   const [showResults, setShowResults] = useState(false);
   const [questionText, setQuestionText] = useState("");
   const [questionResponse, setQuestionResponse] =
     useState<QuestionResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // New state
 
   useEffect(() => {
     if (questionResponse) {
@@ -43,9 +41,6 @@ export default function QuestionsPage() {
       const questionResponse = await submitQuestion(questionText);
       setQuestionResponse(questionResponse);
       setShowResults(true);
-      setModifiedResponses({});
-      setSelectedResponses(new Set());
-      setResponseText("");
     } catch (error) {
       console.error("Failed to submit question:", error);
       alert("Failed to submit question. Please try again.");
@@ -73,46 +68,41 @@ export default function QuestionsPage() {
 
       const selectedTexts = responses
         .filter((r) => newSet.has(r.id))
-        .map((r) => modifiedResponses[r.id]?.trim() || r.response)
+        .map((r) => r.response)
         .join("\n\n");
 
       setResponseText(selectedTexts);
+
       return newSet;
     });
   };
 
-  const handleResponseModified = (
-    response: SuggestedResponse,
-    newText: string
-  ) => {
-    setModifiedResponses((prev) => {
-      const updated = { ...prev, [response.id]: newText };
-      if (selectedResponses.has(response.id)) {
-        const updatedText = responses
-          .filter((r) => selectedResponses.has(r.id))
-          .map((r) => updated[r.id]?.trim() || r.response)
-          .join("\n\n");
-        setResponseText(updatedText);
-      }
-      return updated;
-    });
-  };
-
   const handleSubmit = async () => {
+    if (!responseText.trim()) return;
+
+    setIsSubmitting(true);
     const payload: FinalResponsePayload = {
       finalResponse: responseText.trim(),
-      modifiedResponses: Object.entries(modifiedResponses).map(
-        ([id, modifiedResponse]) => ({
-          id,
-          modifiedResponse,
-        })
-      ),
       selectedResponses: Array.from(selectedResponses),
       standaloneQuestion: questionResponse?.standaloneQuestion!,
     };
 
     console.log("Submitting:", payload);
-    await submitResponse(payload);
+
+    try {
+      await submitResponse(payload);
+      alert("Response submitted successfully!");
+      setResponseText("");
+      setSelectedResponses(new Set());
+      setShowResults(false);
+      setQuestionText("");
+      setQuestionResponse(null);
+    } catch (error) {
+      console.error("Failed to submit response:", error);
+      alert("Failed to submit response. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -151,7 +141,6 @@ export default function QuestionsPage() {
         ) : (
           showResults && (
             <div className="space-y-6">
-              {/* Category and Subcategory */}
               <div className="flex items-center gap-3">
                 <span className="text-slate-600">Category:</span>
                 <Badge variant="secondary" className="text-sm">
@@ -163,22 +152,20 @@ export default function QuestionsPage() {
                 </Badge>
               </div>
 
-              {/* Template Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-                {responses.map((response, i) => (
-                  <SuggestedResponseCard
-                    key={response.id}
-                    response={response}
-                    isSelected={selectedResponses.has(response.id)}
-                    isMostRelevant={i === 0}
-                    onToggle={() => handleTemplateToggle(response)}
-                    onModified={handleResponseModified}
-                    modifiedText={modifiedResponses[response.id]}
-                  />
-                ))}
+              <div>
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+                  {responses.map((response, i) => (
+                    <SuggestedResponseCard
+                      key={response.id}
+                      response={response}
+                      isSelected={selectedResponses.has(response.id)}
+                      isMostRelevant={i === 0}
+                      onToggle={() => handleTemplateToggle(response)}
+                    />
+                  ))}
+                </div>
               </div>
 
-              {/* Combined Response Textarea */}
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-slate-900">Your Response</h2>
@@ -196,14 +183,17 @@ export default function QuestionsPage() {
                     placeholder="Select template cards above or write your own response..."
                     className="h-[calc(100vh-550px)] max-h-[200px] overflow-y-auto resize-none leading-tight bg-white dark:bg-slate-950 pr-20"
                   />
-
                   <Button
                     onClick={handleSubmit}
-                    disabled={!responseText.trim()}
+                    disabled={!responseText.trim() || isSubmitting}
                     size="icon"
                     className="absolute right-5 bottom-3"
                   >
-                    <Send className="w-4 h-4" />
+                    {isSubmitting ? (
+                      <span className="animate-spin">⏳</span>
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
                   </Button>
                 </div>
               </div>
