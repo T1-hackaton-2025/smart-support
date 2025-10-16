@@ -45,39 +45,26 @@ export class RagService {
 
   public async addNewTemplates(
     newStandaloneQuestion: string,
-    templates: {
-      modifiedTemplateId: string;
-      modifiedTemplateAnswer: string;
-    }[],
+    selectedResponsesIds: string[],
   ) {
-    if (!templates || templates.length === 0) return;
+    if (!selectedResponsesIds || selectedResponsesIds.length === 0) return;
 
-    const ids = templates.map((t) => t.modifiedTemplateId);
-
-    const rows = await this.dbService.findByIds(ids);
+    const rows = await this.dbService.findByIds(selectedResponsesIds);
 
     if (!rows || rows.length === 0) {
       throw new Error('No matching templates found for provided IDs.');
     }
 
-    const templateMap = new Map(
-      templates.map((t) => [t.modifiedTemplateId, t]),
-    );
+    console.log(rows);
 
-    const newDocs = rows
-      .map((row: any) => {
-        const templateData = templateMap.get(row.id);
-        if (!templateData) return null;
-
-        return new Document({
-          pageContent: newStandaloneQuestion,
-          metadata: {
-            ...row.metadata,
-            templateAnswer: templateData.modifiedTemplateAnswer,
-          },
-        });
-      })
-      .filter((doc) => doc !== null);
+    const newDocs = rows.map((row: any) => {
+      return new Document({
+        pageContent: newStandaloneQuestion,
+        metadata: {
+          ...row.metadata,
+        },
+      });
+    });
 
     if (newDocs.length > 0) {
       await this.dbService.saveNewDocuments(newDocs);

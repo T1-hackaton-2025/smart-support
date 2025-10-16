@@ -28,14 +28,12 @@ export class SupportService {
   }
 
   async submitResponse(dto: SubmitResponseDto): Promise<void> {
-    if (dto.modifiedResponses.length === 0) return;
+    if (dto.selectedResponses.length === 0) return;
 
-    const newTemplates = dto.modifiedResponses.map((mr) => ({
-      modifiedTemplateId: mr.id,
-      modifiedTemplateAnswer: mr.modifiedResponse,
-    }));
-
-    await this.ragService.addNewTemplates(dto.standaloneQuestion, newTemplates);
+    await this.ragService.addNewTemplates(
+      dto.standaloneQuestion,
+      dto.selectedResponses,
+    );
 
     console.log('submitted new template successfully');
   }

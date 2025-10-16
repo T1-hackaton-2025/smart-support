@@ -82,7 +82,7 @@ export class DatabaseService implements OnModuleInit {
   }
 
   getVectorStoreExtra(): PGVectorStore {
-    return this.vectorStore;
+    return this.vectorStoreExtra;
   }
 
   getRetreiverExtra(): VectorStoreRetriever<PGVectorStore> {
